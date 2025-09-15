@@ -8,7 +8,6 @@ variable "key_name" {
   type        = string
 }
 
-# Security Group allowing SSH + HTTP
 resource "aws_security_group" "allow_ssh_http" {
   name        = "allow_ssh_http"
   description = "Allow SSH and HTTP inbound traffic"
@@ -35,5 +34,9 @@ resource "aws_security_group" "allow_ssh_http" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Allow-SSH-HTTP"
   }
 }
