@@ -1,4 +1,4 @@
-- hosts: webservers
+- hosts: TF-Instance
   become: true
   tasks:
     - name: Install Apache2
