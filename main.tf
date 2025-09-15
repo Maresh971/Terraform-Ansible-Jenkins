@@ -1,14 +1,14 @@
 provider "aws" {
-  region = "us-east-1"
+    region = "us-east-1"  
 }
 
-resource "aws_instance" "web" {
-  ami           = "ami-0c94855ba95c71c99" # Ubuntu 18.04 LTS
-  instance_type = "t2.micro"
-
+resource "aws_instance" "foo" {
+  ami           = "ami-0360c520857e3138f" # us-east-1
+  instance_type = "t2.medium"
   tags = {
-    Name = "WebServer"
+      Name = "TF-Instance"
   }
+}
 
   # Optionally output public IP for Ansible
   provisioner "local-exec" {
