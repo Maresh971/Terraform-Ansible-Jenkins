@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    parameters {
+        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
+    }
+
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        SSH_KEY               = credentials('ansible12')   // store your .pem key in Jenkins credentials
+        ANSIBLE_HOST_KEY_CHECKING = 'False'                // disable SSH host key checking
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Maresh971/Terraform-Ansible-Jenkins.git'
+            }
+        }
+
+        stage('Plan') {
+            steps {
+                sh 'terraform init'
+                sh 'terraform plan -out=tfplan'
+                sh 'terraform show -no-color tfplan > tfplan.txt'
+            }
+        }
+
+        stage('Approval') {
+            when {
+                not {
+                    equals expected: true, actual: params.autoApprove
+                }
+            }
+            steps {
+                script {
+                    def plan = readFile 'tfplan.txt'
+                    input message: "Do you want to apply the plan?",
+                          parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+                }
+            }
+        }
+
+        stage('Apply') {
+            steps {
+                sh 'terraform apply -input=false tfplan'
+                sh 'terraform output -raw public_ip > ec2_ip.txt'
+            }
+        }
+
+        stage('Run Ansible') {
+            steps {
+                script {
+                    def ip = readFile('ec2_ip.txt').trim()
+
+                    // Save SSH key from Jenkins credentials to file
+                    writeFile file: 'aws-key.pem', text: SSH_KEY
+                    sh 'chmod 600 aws-key.pem'
+
+                    // Option 1: disable host key checking globally (already set in env)
+                    // Option 2: explicitly add host key (uncomment if you prefer security)
+                    // sh "ssh-keyscan -H ${ip} >> ~/.ssh/known_hosts"
+
+                    // Run Ansible playbook
+                    sh """
+                        ansible-playbook -i '${ip},' install_apache.yml \
+                        --user ubuntu \
+                        --private-key aws-key.pem
+                    """
+                }
+            }
+        }
+    }
+}
