@@ -1,4 +1,14 @@
-# Security group for SSH and HTTP
+variable "vpc_id" {
+  description = "The VPC ID where EC2 will be launched"
+  type        = string
+}
+
+variable "key_name" {
+  description = "The AWS key pair name for SSH access"
+  type        = string
+}
+
+# Security Group allowing SSH + HTTP
 resource "aws_security_group" "allow_ssh_http" {
   name        = "allow_ssh_http"
   description = "Allow SSH and HTTP inbound traffic"
@@ -25,22 +35,5 @@ resource "aws_security_group" "allow_ssh_http" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# EC2 instance
-resource "aws_instance" "foo" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  key_name               = var.key_name
-  vpc_security_group_ids = [aws_security_group.allow_ssh_http.id]
-
-  tags = {
-    Name = "TF-Instance"
-  }
-
-  # Save public IP to file for Ansible/Jenkins
-  provisioner "local-exec" {
-    command = "echo ${self.public_ip} > ec2_ip.txt"
   }
 }
